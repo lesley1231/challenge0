@@ -1,0 +1,170 @@
+import os
+import cv2
+import random
+import numpy as np
+from skimage.filters import gaussian
+from skimage import img_as_ubyte
+from matplotlib import pyplot as plt
+
+
+img_number = 1
+for root, dirs, files in os.walk("images/oocam_data/batch1"):
+    
+    
+    #Brightness
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path)
+        
+        def brightness(img, low, high):
+            value = random.uniform(low, high)
+            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+            hsv = np.array(hsv, dtype = np.float64)
+            hsv[:,:,1] = hsv[:,:,1]*value
+            hsv[:,:,1][hsv[:,:,1]>255]  = 255
+            hsv[:,:,2] = hsv[:,:,2]*value 
+            hsv[:,:,2][hsv[:,:,2]>255]  = 255
+            hsv = np.array(hsv, dtype = np.uint8)
+            img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+            return img
+        img = brightness(img, 0.5, 3) 
+        
+        cv2.imwrite("images/output/brightness"+str(img_number)+".jpg", img)
+        img_number += 1
+         
+    
+    #Zoom
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path)
+        
+        def fill(img, h, w):
+            img = cv2.resize(img, (h, w), cv2.INTER_CUBIC)
+            return img
+        def zoom(img, value):
+            if value > 1 or value < 0:
+                print('Value for zoom should be less than 1 and greater than 0')
+                return img
+            value = random.uniform(value, 1)
+            h, w = img.shape[:2]
+            h_taken = int(value*h)
+            w_taken = int(value*w)
+            h_start = random.randint(0, h-h_taken)
+            w_start = random.randint(0, w-w_taken)
+            img = img[h_start:h_start+h_taken, w_start:w_start+w_taken, :]
+            img = fill(img, h, w)
+            return img
+        img = zoom(img, 0.5)
+        
+        cv2.imwrite("images/output/zoom"+str(img_number)+".jpg", img)
+        img_number += 1
+    
+    
+    #Channel shift
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path)
+        
+        def channel_shift(img, value):
+            value = int(random.uniform(-value, value))
+            img = img + value
+            img[:,:,:][img[:,:,:]>255]  = 255
+            img[:,:,:][img[:,:,:]<0]  = 0
+            img = img.astype(np.uint8)
+            return img
+        img = channel_shift(img, 60)
+        
+        cv2.imwrite("images/output/channelshift"+str(img_number)+".jpg", img)
+        img_number += 1
+    
+    
+    #Horizontal flip
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path)
+        
+        def horizontal_flip(img, flag):
+            if flag:
+                return cv2.flip(img, 1)
+            else:
+                return img
+        img = horizontal_flip(img, True)
+        
+        cv2.imwrite("images/output/horfilp"+str(img_number)+".jpg", img)
+        img_number += 1
+
+    
+    #Vertical flip
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path)
+        
+        def vertical_flip(img, flag):
+            if flag:
+                return cv2.flip(img, 0)
+            else:
+                return img
+        img = vertical_flip(img, True)
+        
+        cv2.imwrite("images/output/verfilp"+str(img_number)+".jpg", img)
+        img_number += 1
+
+
+    #Rotation     
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path)   
+        
+        def rotation(img, angle):
+            angle = int(random.uniform(-angle, angle))
+            h, w = img.shape[:2]
+            M = cv2.getRotationMatrix2D((int(w/2), int(h/2)), angle, 1)
+            img = cv2.warpAffine(img, M, (w, h))
+            return img
+        img1 = rotation(img, 45)
+        img2 = rotation(img, 120)
+        img3 = rotation(img, 270)
+        
+        cv2.imwrite("images/output/rotation1"+str(img_number)+".jpg", img1)
+        cv2.imwrite("images/output/rotation2"+str(img_number)+".jpg", img2)
+        cv2.imwrite("images/output/rotation3"+str(img_number)+".jpg", img3)
+        img_number += 1
+
+
+    #Random crop
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path) 
+        
+        def random_crop(img, row_crop_pix = 45):
+            rows, cols, _ = img.shape
+            cols_crop_pix = round(row_crop_pix*cols/rows)
+            row_crop_pix = int(np.floor(2*random.uniform(0, 1)*row_crop_pix))
+            cols_crop_pix = int(np.floor(2*random.uniform(0, 1)*cols_crop_pix).astype(int))
+            return img[row_crop_pix:rows - row_crop_pix, cols_crop_pix:cols - cols_crop_pix]
+        img = random_crop(img)
+        
+        cv2.imwrite("images/output/crop"+str(img_number)+".jpg", img)
+        img_number += 1
+
+
+    #Blur
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path) 
+        
+        img = cv2.blur(img,(3,3))
+
+        cv2.imwrite("images/output/blur"+str(img_number)+".jpg", img)
+        img_number += 1
+
+
+    #Gaussian
+    for name in files:
+        path = os.path.join(root, name)
+        img = cv2.imread(path, 0)
+        
+        img = img_as_ubyte(gaussian(img, sigma=1, mode='constant', cval=0.0))
+        
+        cv2.imwrite("images/output/smoothed"+str(img_number)+".jpg", img)
+        img_number += 1
